@@ -1,2 +1,5 @@
-# colorus
-Flutter color pickers
+# Colorus
+
+Flutter Color Pickers
+
+

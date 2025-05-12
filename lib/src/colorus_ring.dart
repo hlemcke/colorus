@@ -1,0 +1,198 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+
+import 'colorus_commons.dart';
+
+///
+class ColorusRing extends StatelessWidget {
+  // static const Color orange = Color.fromARGB(255, 0xfd, 0x82, 0x02);
+
+  /// This color is initially displayed
+  final Color color;
+
+  /// Callback method invoked when color is changed by user
+  final ValueChanged<Color>? onChanged;
+
+  /// Thickness of the ring
+  final double thickness;
+
+  ColorusRing({
+    super.key,
+    required this.color,
+    this.onChanged,
+    this.thickness = 24,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        double width = min(constraints.maxHeight, constraints.maxWidth);
+        double radius = width / 2;
+        double thickness = max(radius / 10, 24);
+        thickness = max(thickness, thickness);
+        radius -= thickness;
+        // debugPrint( 'constraints=$constraints -> width=$width, radius=$radius, thick=$thickness' );
+        return SizedBox(
+          height: width,
+          width: width,
+          child: Stack(
+            // alignment: Alignment.center,
+            children: [
+              _buildRing(width, radius, thickness),
+              _buildRingSelector(width, radius, thickness),
+              _buildGradientSelector(context, width, radius, thickness),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Ring of all colors
+  Widget _buildRing(double width, double radius, double thickness) =>
+      Positioned(
+        left: thickness / 2,
+        top: thickness / 2,
+        child: CustomPaint(
+          size: Size(width, width),
+          painter: ColorRingPainter(radius: radius, width: thickness),
+          // ),
+        ),
+      );
+
+  /// Color selector circle in ring
+  Widget _buildRingSelector(double width, double radius, double thickness) {
+    double angle = computeAngleFromColor(color);
+    return Positioned(
+      left: radius * (1 + cos(angle)),
+      top: radius * (1 + sin(angle)),
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          double newAngle = atan2(
+            details.localPosition.dy - radius,
+            details.localPosition.dx - radius,
+          );
+          Color newColor = computeColorFromAngle(newAngle);
+          if (onChanged != null) {
+            onChanged!(newColor);
+          }
+        },
+        child: Circle(radius: thickness / 2),
+      ),
+    );
+  }
+
+  /// Square inside ring to select brightness and saturation
+  Widget _buildGradientSelector(
+    BuildContext context,
+    double width,
+    double radius,
+    double thickness,
+  ) {
+    double dx = 0.5;
+    double dy = 0.5;
+    double squareWidth = 1.4 * radius - thickness;
+    return Positioned(
+      left: radius - squareWidth / 2 + thickness / 2,
+      top: radius - squareWidth / 2 + thickness / 2,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          RenderBox? box = context.findRenderObject() as RenderBox?;
+          if (box != null) {
+            Offset localPosition = box.globalToLocal(details.globalPosition);
+            dx = localPosition.dx / box.size.width;
+            dx = localPosition.dy / box.size.height;
+
+            Color refinedColor = _computeGradientColor(dx, dy);
+            onChanged?.call(refinedColor); // Update color via callback
+          }
+        },
+        child: Stack(
+          children: [
+            Container(
+              height: squareWidth,
+              width: squareWidth,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.white, color, Colors.black],
+                ),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              left: dx * squareWidth - 5,
+              top: dy * squareWidth - 5,
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.black, width: 1),
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  double computeAngleFromColor(Color color) {
+    HSVColor hsvColor = HSVColor.fromColor(color);
+    return hsvColor.hue * pi / 180;
+  }
+
+  Color computeColorFromAngle(double angle) {
+    double hue = angle * 180 / pi;
+    while (hue < 0) {
+      hue += 360;
+    }
+    while (hue > 360) {
+      hue -= 360;
+    }
+    HSVColor hsvColor = HSVColor.fromAHSV(1.0, hue, 1.0, 1.0);
+    return hsvColor.toColor();
+  }
+
+  Color _computeGradientColor(double x, double y) {
+    final Color? topColor = Color.lerp(Colors.white, color, x);
+    final Color? bottomColor = Color.lerp(color, Colors.black, x);
+    return Color.lerp(topColor, bottomColor, y) ?? color;
+  }
+}
+
+///
+/// Points ring with all colors
+///
+class ColorRingPainter extends CustomPainter {
+  double radius;
+  double width;
+
+  ColorRingPainter({required this.radius, required this.width});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(radius, radius);
+    final gradient = SweepGradient(
+      colors: [
+        for (double i = 0; i <= 1; i += 0.01)
+          HSVColor.fromAHSV(1, i * 360, 1, 1).toColor(),
+      ],
+    );
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final paint = Paint()
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width;
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
