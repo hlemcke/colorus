@@ -1,5 +1,4 @@
 import 'package:colorus/colorus.dart';
-import 'package:colorus/src/colorus_grid.dart';
 import 'package:flutter/material.dart';
 
 /// Entry point of example application
@@ -54,7 +53,13 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildBody() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     spacing: 16.0,
-    children: [_buildColor(), _buildHueSlider(), _buildRing(), _buildGrid()],
+    children: [
+      _buildColor(),
+      _buildHueSlider(),
+      _buildRing(),
+      _buildGrid(),
+      _buildRGBSlider(),
+    ],
   );
 
   Widget _buildColor() => Frame(
@@ -78,13 +83,25 @@ class _MyHomePageState extends State<MyHomePage> {
     ),
   );
 
-  Widget _buildRing() => Frame(
-    label: 'Ring Chooser',
-    child: SizedBox(height: 200, width: 200, child:
-    ColorusRing(
+  Widget _buildRGBSlider() => Frame(
+    label: 'RGB Slider',
+    child: ColorusRGBSlider(
       color: color,
       onChanged: (col) => setState(() => color = col),
-    ),),
+      withAlpha: true,
+    ),
+  );
+
+  Widget _buildRing() => Frame(
+    label: 'Ring Chooser',
+    child: SizedBox(
+      height: 200,
+      width: 200,
+      child: ColorusRing(
+        color: color,
+        onChanged: (col) => setState(() => color = col),
+      ),
+    ),
   );
 }
 

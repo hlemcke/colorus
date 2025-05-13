@@ -91,54 +91,14 @@ class ColorusRing extends StatelessWidget {
     double radius,
     double thickness,
   ) {
-    double dx = 0.5;
-    double dy = 0.5;
     double squareWidth = 1.4 * radius - thickness;
     return Positioned(
       left: radius - squareWidth / 2 + thickness / 2,
       top: radius - squareWidth / 2 + thickness / 2,
-      child: GestureDetector(
-        onPanUpdate: (details) {
-          RenderBox? box = context.findRenderObject() as RenderBox?;
-          if (box != null) {
-            Offset localPosition = box.globalToLocal(details.globalPosition);
-            dx = localPosition.dx / box.size.width;
-            dx = localPosition.dy / box.size.height;
-
-            Color refinedColor = _computeGradientColor(dx, dy);
-            onChanged?.call(refinedColor); // Update color via callback
-          }
-        },
-        child: Stack(
-          children: [
-            Container(
-              height: squareWidth,
-              width: squareWidth,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.white, color, Colors.black],
-                ),
-              ),
-            ),
-            AnimatedPositioned(
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              left: dx * squareWidth - 5,
-              top: dy * squareWidth - 5,
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.black, width: 1),
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        ),
+      child: GradientSelector(
+        color: color,
+        onChanged: onChanged,
+        size: squareWidth,
       ),
     );
   }
@@ -158,12 +118,6 @@ class ColorusRing extends StatelessWidget {
     }
     HSVColor hsvColor = HSVColor.fromAHSV(1.0, hue, 1.0, 1.0);
     return hsvColor.toColor();
-  }
-
-  Color _computeGradientColor(double x, double y) {
-    final Color? topColor = Color.lerp(Colors.white, color, x);
-    final Color? bottomColor = Color.lerp(color, Colors.black, x);
-    return Color.lerp(topColor, bottomColor, y) ?? color;
   }
 }
 
@@ -186,13 +140,91 @@ class ColorRingPainter extends CustomPainter {
       ],
     );
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final paint = Paint()
-      ..shader = gradient.createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = width;
+    final paint =
+        Paint()
+          ..shader = gradient.createShader(rect)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width;
     canvas.drawCircle(center, radius, paint);
   }
 
   @override
   bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+///
+/// Gradient selector square to select
+///
+/// * saturation -> left = low, right = high
+/// * brightness -> bottom = low, top = high
+///
+class GradientSelector extends StatelessWidget {
+  final Color color;
+  late final HSVColor hsv;
+  final ValueChanged<Color>? onChanged;
+
+  /// Size (width and height) of the square
+  final double size;
+
+  GradientSelector({
+    super.key,
+    required this.color,
+    required this.size,
+    this.onChanged,
+  }) {
+    hsv = HSVColor.fromColor(color);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanUpdate: (details) {
+        RenderBox? box = context.findRenderObject() as RenderBox?;
+        if (box != null) {
+          Offset localPosition = box.globalToLocal(details.globalPosition);
+          double saturation = (localPosition.dx / box.size.width);
+          saturation = saturation.clamp(0.0, 1.0);
+          double value = (1 - localPosition.dy / box.size.height);
+          value = value.clamp(0.0, 1.0);
+          HSVColor newHsv = HSVColor.fromAHSV(
+            hsv.alpha,
+            hsv.hue,
+            saturation,
+            value,
+          );
+          if (onChanged != null) {
+            onChanged!(newHsv.toColor());
+          }
+        }
+      },
+      child: Stack(
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, color, Colors.black],
+              ),
+            ),
+          ),
+          Positioned(
+            left: hsv.saturation * size - 10,
+            top: (1 - hsv.value) * size - 10,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black, width: 1),
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
