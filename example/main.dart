@@ -1,5 +1,6 @@
 import 'package:colorus/colorus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Entry point of example application
 void main() {
@@ -50,16 +51,53 @@ class _MyHomePageState extends State<MyHomePage> {
   PreferredSizeWidget _buildAppBar() =>
       AppBar(title: const Text('Colorus - Color-Choosers'));
 
-  Widget _buildBody() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    spacing: 16.0,
+  Widget _buildBody() => ListView(
+    shrinkWrap: true,
     children: [
-      _buildColor(),
-      _buildHueSlider(),
-      _buildRing(),
-      _buildGrid(),
-      _buildRGBSlider(),
+      ListTile(leading: _buildAction4Color(), title: _buildColor()),
+      ListTile(leading: _buildAction4HueSlider(), title: _buildHueSlider()),
+      ListTile(leading: _buildAction4Ring(), title: _buildRing()),
+      ListTile(leading: _buildAction4Grid(), title: _buildGrid()),
+      ListTile(leading: _buildAction4RGBSlider(), title: _buildRGBSlider()),
     ],
+  );
+
+  Widget _buildAction4Color() => IconButton.outlined(
+    icon: Icon(Icons.copy_outlined),
+    onPressed: () {
+      String hexColor = '0x${color.toARGB32().toRadixString(16)}';
+      Clipboard.setData(ClipboardData(text: hexColor));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            'Color $hexColor copied to clipboard',
+            overflow: TextOverflow.ellipsis,
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    },
+  );
+
+  Widget _buildAction4Grid() => IconButton.outlined(
+    icon: Icon(Icons.grid_4x4_outlined),
+    onPressed: () => _showGrid(context, color),
+  );
+
+  Widget _buildAction4HueSlider() => IconButton.outlined(
+    icon: Icon(Icons.color_lens_outlined),
+    onPressed: () => _showHueSlider(context, color),
+  );
+
+  Widget _buildAction4Ring() => IconButton.outlined(
+    icon: Icon(Icons.lightbulb_circle_outlined),
+    onPressed: () => _showRing(context, color),
+  );
+
+  Widget _buildAction4RGBSlider() => IconButton.outlined(
+    icon: Icon(Icons.menu_open_outlined),
+    onPressed: () => _showRGBSlider(context, color),
   );
 
   Widget _buildColor() => Frame(
@@ -103,6 +141,58 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
     ),
   );
+
+  Future<Color?> _showGrid(BuildContext context, Color clr) =>
+      showAdaptiveDialog<Color?>(
+        context: context,
+        builder:
+            (BuildContext context) => AlertDialog(
+              title: Text('Colorus - Rainbow Grid'),
+              content: ColorusGrid(
+                color: clr,
+                onChanged: (col) => setState(() => color = col),
+              ),
+            ),
+      );
+
+  Future<Color?> _showHueSlider(BuildContext context, Color clr) =>
+      showAdaptiveDialog<Color?>(
+        context: context,
+        builder:
+            (BuildContext context) => AlertDialog(
+              title: Text('Colorus - Hue Slider'),
+              content: ColorusHueSlider(
+                color: clr,
+                onChanged: (col) => setState(() => color = col),
+              ),
+            ),
+      );
+
+  Future<Color?> _showRGBSlider(BuildContext context, Color clr) =>
+      showAdaptiveDialog<Color?>(
+        context: context,
+        builder:
+            (BuildContext context) => AlertDialog(
+              title: Text('Colorus - RGB-Sliders'),
+              content: ColorusRGBSlider(
+                color: clr,
+                onChanged: (col) => setState(() => color = col),
+              ),
+            ),
+      );
+
+  Future<Color?> _showRing(BuildContext context, Color clr) =>
+      showAdaptiveDialog<Color?>(
+        context: context,
+        builder:
+            (BuildContext context) => AlertDialog(
+              title: Text('Colorus - Ring'),
+              content: ColorusRing(
+                color: clr,
+                onChanged: (col) => setState(() => color = col),
+              ),
+            ),
+      );
 }
 
 ///

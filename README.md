@@ -1,6 +1,6 @@
-# colorus
+# Colorus
 
-Flutter Color Pickers
+Flutter Color Pickers with small footprint
 
 # Features
 
@@ -20,11 +20,10 @@ flutter:
 
 Use `Colorus` like this:
 
-```dart
-ColorusHueSlider
-(
-color: color,
-onChanged: (col) => setState(() => color = col),
+```
+ColorusHueSlider(
+  color: color,
+  onChanged: (col) => setState(() => color = col),
 ),
 ```
 
