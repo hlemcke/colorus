@@ -1,16 +1,15 @@
 name: colorus
 description: Colorus - Multiple easy to use Color Pickers with small footprint
-version: 0.0.1
+version: 1.0.0
 homepage: https://www.djarjo.com/colorus
 issue_tracker: https://github.com/hlemcke/colorus/issues
 repository: https://github.com/hlemcke/colorus
 screenshots:
-  - description: 'Example main.dart'
-    path: example/screenshots/example-main.png
+  - description: 'All Choosers'
+    path: screenshots/all_choosers.png
 
 environment:
-  sdk: ^3.7.2
-  flutter: '>=3.3.0'
+  sdk: ^3.10.0
 
 dependencies:
   flutter:

@@ -17,7 +17,7 @@ class ColorusRing extends StatelessWidget {
   /// Thickness of the ring
   final double thickness;
 
-  ColorusRing({
+  const ColorusRing({
     super.key,
     required this.color,
     this.onChanged,
@@ -30,9 +30,9 @@ class ColorusRing extends StatelessWidget {
       builder: (BuildContext context, BoxConstraints constraints) {
         double width = min(constraints.maxHeight, constraints.maxWidth);
         double radius = width / 2;
-        double thickness = max(radius / 10, 24);
-        thickness = max(thickness, thickness);
-        radius -= thickness;
+        double radialWidth = max(radius / 10, 24);
+        radialWidth = max(radialWidth, thickness);
+        radius -= radialWidth;
         // debugPrint( 'constraints=$constraints -> width=$width, radius=$radius, thick=$thickness' );
         return SizedBox(
           height: width,
@@ -40,9 +40,9 @@ class ColorusRing extends StatelessWidget {
           child: Stack(
             // alignment: Alignment.center,
             children: [
-              _buildRing(width, radius, thickness),
-              _buildRingSelector(width, radius, thickness),
-              _buildGradientSelector(context, width, radius, thickness),
+              _buildRing(width, radius, radialWidth),
+              _buildRingSelector(width, radius, radialWidth),
+              _buildGradientSelector(context, width, radius, radialWidth),
             ],
           ),
         );
@@ -140,11 +140,10 @@ class ColorRingPainter extends CustomPainter {
       ],
     );
     final rect = Rect.fromCircle(center: center, radius: radius);
-    final paint =
-        Paint()
-          ..shader = gradient.createShader(rect)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = width;
+    final paint = Paint()
+      ..shader = gradient.createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width;
     canvas.drawCircle(center, radius, paint);
   }
 

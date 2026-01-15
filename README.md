@@ -1,6 +1,6 @@
 # Colorus
 
-Flutter Color Pickers with small footprint
+Flutter Color Choosers with small footprint
 
 # Features
 
@@ -13,7 +13,7 @@ Add the latest version of Colorus to the pubspc.yaml file:
 
 ```yaml
 flutter:
-  colorus: ^0.0.1
+  colorus: ^1.0.0
 ```
 
 # Usage

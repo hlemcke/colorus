@@ -78,26 +78,31 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       );
     },
+    tooltip: 'Copy color code to clipboard',
   );
 
   Widget _buildAction4Grid() => IconButton.outlined(
     icon: Icon(Icons.grid_4x4_outlined),
     onPressed: () => _showGrid(context, color),
+    tooltip: 'Open grid chooser in dialog',
   );
 
   Widget _buildAction4HueSlider() => IconButton.outlined(
     icon: Icon(Icons.color_lens_outlined),
     onPressed: () => _showHueSlider(context, color),
+    tooltip: 'Open Hue chooser in dialog',
   );
 
   Widget _buildAction4Ring() => IconButton.outlined(
     icon: Icon(Icons.lightbulb_circle_outlined),
     onPressed: () => _showRing(context, color),
+    tooltip: 'Open ring chooser in dialog',
   );
 
   Widget _buildAction4RGBSlider() => IconButton.outlined(
     icon: Icon(Icons.menu_open_outlined),
     onPressed: () => _showRGBSlider(context, color),
+    tooltip: 'Open RGB chooser in dialog',
   );
 
   Widget _buildColor() => Frame(
@@ -132,66 +137,74 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildRing() => Frame(
     label: 'Ring Chooser',
-    child: SizedBox(
-      height: 200,
-      width: 200,
-      child: ColorusRing(
-        color: color,
-        onChanged: (col) => setState(() => color = col),
-      ),
+    child: Row(
+      children: [
+        SizedBox(
+          height: 200,
+          width: 200,
+          child: ColorusRing(
+            color: color,
+            onChanged: (col) => setState(() => color = col),
+          ),
+        ),
+        SizedBox(
+          height: 200,
+          width: 200,
+          child: ColorusWheel(
+            color: color,
+            onChanged: (col) => setState(() => color = col),
+          ),
+        ),
+      ],
     ),
   );
 
   Future<Color?> _showGrid(BuildContext context, Color clr) =>
       showAdaptiveDialog<Color?>(
         context: context,
-        builder:
-            (BuildContext context) => AlertDialog(
-              title: Text('Colorus - Rainbow Grid'),
-              content: ColorusGrid(
-                color: clr,
-                onChanged: (col) => setState(() => color = col),
-              ),
-            ),
+        builder: (BuildContext context) => AlertDialog(
+          title: Text('Colorus - Rainbow Grid'),
+          content: ColorusGrid(
+            color: clr,
+            onChanged: (col) => setState(() => color = col),
+          ),
+        ),
       );
 
   Future<Color?> _showHueSlider(BuildContext context, Color clr) =>
       showAdaptiveDialog<Color?>(
         context: context,
-        builder:
-            (BuildContext context) => AlertDialog(
-              title: Text('Colorus - Hue Slider'),
-              content: ColorusHueSlider(
-                color: clr,
-                onChanged: (col) => setState(() => color = col),
-              ),
-            ),
+        builder: (BuildContext context) => AlertDialog(
+          title: Text('Colorus - Hue Slider'),
+          content: ColorusHueSlider(
+            color: clr,
+            onChanged: (col) => setState(() => color = col),
+          ),
+        ),
       );
 
   Future<Color?> _showRGBSlider(BuildContext context, Color clr) =>
       showAdaptiveDialog<Color?>(
         context: context,
-        builder:
-            (BuildContext context) => AlertDialog(
-              title: Text('Colorus - RGB-Sliders'),
-              content: ColorusRGBSlider(
-                color: clr,
-                onChanged: (col) => setState(() => color = col),
-              ),
-            ),
+        builder: (BuildContext context) => AlertDialog(
+          title: Text('Colorus - RGB-Sliders'),
+          content: ColorusRGBSlider(
+            color: clr,
+            onChanged: (col) => setState(() => color = col),
+          ),
+        ),
       );
 
   Future<Color?> _showRing(BuildContext context, Color clr) =>
       showAdaptiveDialog<Color?>(
         context: context,
-        builder:
-            (BuildContext context) => AlertDialog(
-              title: Text('Colorus - Ring'),
-              content: ColorusRing(
-                color: clr,
-                onChanged: (col) => setState(() => color = col),
-              ),
-            ),
+        builder: (BuildContext context) => AlertDialog(
+          title: Text('Colorus - Ring'),
+          content: ColorusRing(
+            color: clr,
+            onChanged: (col) => setState(() => color = col),
+          ),
+        ),
       );
 }
 

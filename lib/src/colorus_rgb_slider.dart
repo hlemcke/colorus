@@ -46,27 +46,25 @@ class ColorusRGBSlider extends StatelessWidget {
     child: Slider(
       min: 0,
       max: 1,
-      onChanged:
-          (onChanged == null)
-              ? null
-              : (v) => onChanged!(
-                Color.from(
-                  alpha: isA ? v : color.a,
-                  red: isR ? v : color.r,
-                  green: isG ? v : color.g,
-                  blue: isB ? v : color.b,
-                ),
+      onChanged: (onChanged == null)
+          ? null
+          : (v) => onChanged!(
+              Color.from(
+                alpha: isA ? v : color.a,
+                red: isR ? v : color.r,
+                green: isG ? v : color.g,
+                blue: isB ? v : color.b,
               ),
+            ),
       overlayColor: WidgetStatePropertyAll(Colors.black),
       thumbColor: Colors.white,
-      value:
-          isA
-              ? color.a
-              : isR
-              ? color.r
-              : isG
-              ? color.g
-              : color.b,
+      value: isA
+          ? color.a
+          : isR
+          ? color.r
+          : isG
+          ? color.g
+          : color.b,
     ),
   );
 }
