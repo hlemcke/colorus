@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-///
-///
-///
+import 'colorus_slider.dart';
+
 class ColorusHueSlider extends StatelessWidget {
   final Color color;
   final ValueChanged<Color>? onChanged;
@@ -12,59 +11,46 @@ class ColorusHueSlider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     HSVColor hsvColor = HSVColor.fromColor(color);
-    double hueSliderValue = hsvColor.hue / 360;
-    double opacitySliderValue = hsvColor.alpha;
+    // Values are already 0.0 to 1.0 (Hue is 0-360, Alpha is 0-1)
+    double hueValue = hsvColor.hue / 360;
+    double alphaValue = color.a;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildSliderHue(hueSliderValue, opacitySliderValue),
-        _buildSliderOpacity(hueSliderValue, opacitySliderValue),
+        // 1. Hue Slider
+        ColorusSlider(
+          value: hueValue,
+          baseColor: Colors.transparent, // Ignored because isHue is true
+          isHue: true,
+          onChanged: (v) => _updateColor(v, alphaValue),
+        ),
+        const SizedBox(height: 8),
+        // 2. Opacity (Alpha) Slider
+        ColorusSlider(
+          value: alphaValue,
+          // Use current color at full opacity as the gradient end-point
+          baseColor: color.withValues(alpha: 1.0),
+          withCheckerBoard: true,
+          onChanged: (v) => _updateColor(hueValue, v),
+        ),
       ],
     );
   }
 
-  Widget _buildSliderHue(double hue, double opacity) => Container(
-    height: 30,
-    margin: EdgeInsets.only(bottom: 8, top: 8),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(15),
-      gradient: LinearGradient(
-        colors: [
-          for (double i = 0; i <= 1; i += 0.01)
-            HSVColor.fromAHSV(1.0, i * 360, 1.0, 1.0).toColor(),
-        ],
-        stops: [for (double i = 0; i <= 1; i += 0.01) i],
-      ),
-    ),
-    child: Slider(
-      onChanged: (v) => _updateColor(v, opacity),
-      overlayColor: WidgetStatePropertyAll(Colors.black),
-      thumbColor: Colors.white,
-      value: hue,
-    ),
-  );
+  void _updateColor(double huePercent, double alpha) {
+    if (onChanged == null) return;
 
-  Widget _buildSliderOpacity(double hue, double opacity) => Container(
-    height: 30,
-    margin: EdgeInsets.only(bottom: 8),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(15),
-      gradient: LinearGradient(colors: [Colors.white, color]),
-    ),
-    child: Slider(
-      onChanged: (v) => _updateColor(hue, v),
-      overlayColor: WidgetStatePropertyAll(Colors.black),
-      thumbColor: Colors.white,
-      value: opacity,
-    ),
-  );
+    // Convert back to 0-360 range for HSVColor
+    HSVColor currentHsv = HSVColor.fromColor(color);
+    Color updatedColor = HSVColor.fromAHSV(
+      alpha,
+      huePercent * 360,
+      currentHsv.saturation,
+      currentHsv.value,
+    ).toColor();
 
-  void _updateColor(double hue, double opacity) {
-    Color clr = HSVColor.fromAHSV(opacity, hue * 360, 1.0, 1.0).toColor();
-    if (onChanged != null) {
-      onChanged!(clr);
-    }
+    onChanged!(updatedColor);
   }
 }

@@ -1,11 +1,17 @@
+## 1.1.0
+
+* separated sliders into `ColorusSlider`
+* added parameter `alphaPosition` to `ColorusRing` to add an Alpha-slider
+* added parameter `alphaLabel` to `ColorusRing` to show selected percentage
+
 ## 1.0.1
 
-* Fixed selector jumps in ColorusRing
-* Added black/white toggle to ColorusWheel
+* fixed selector jumps in `ColorusRing`
+* added black/white toggle to `ColorusWheel`
 
 ## 1.0.0
 
-* Added ColorusWheel
+* added `ColorusWheel`
 
 ## 0.0.1
 

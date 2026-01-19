@@ -2,117 +2,191 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-class ColorusRing extends StatelessWidget {
+import '../colorus.dart';
+
+class ColorusRing extends StatefulWidget {
   final Color color;
   final ValueChanged<Color>? onChanged;
   final double thickness;
+  final ColorusPosition alphaPosition;
+  final ColorusPosition alphaLabel; // Position of the percentage text
 
   const ColorusRing({
     super.key,
     required this.color,
     this.onChanged,
     this.thickness = 24,
+    this.alphaPosition = ColorusPosition.none,
+    this.alphaLabel = ColorusPosition.none,
   });
 
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        // 1. Determine the square size
-        double size = min(constraints.maxHeight, constraints.maxWidth);
-        if (size == double.infinity) size = 200;
+  State<ColorusRing> createState() => _ColorusRingState();
+}
 
-        final double center = size / 2;
-        final double radialWidth = thickness;
-        final double ringRadius = center - (radialWidth / 2);
-        final double squareSize = 1.4 * ringRadius - radialWidth;
+class _ColorusRingState extends State<ColorusRing> {
+  late double _h, _s, _v;
 
-        return Center(
-          child: SizedBox(
-            width: size,
-            height: size,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                //--- Layer 1: The Rainbow Ring
-                CustomPaint(
-                  size: Size(size, size),
-                  painter: ColorRingPainter(
-                    radius: ringRadius,
-                    width: radialWidth,
-                  ),
+  @override
+  void initState() {
+    super.initState();
+    _syncInternalHSV(widget.color);
+  }
+
+  @override
+  void didUpdateWidget(ColorusRing oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.color.toARGB32() != oldWidget.color.toARGB32()) {
+      _syncInternalHSV(widget.color);
+    }
+  }
+
+  void _syncInternalHSV(Color color) {
+    final hsv = HSVColor.fromColor(color);
+    if (hsv.saturation > 0.01 || hsv.value > 0.01) {
+      _h = hsv.hue;
+    }
+    _s = hsv.saturation;
+    _v = hsv.value;
+  }
+
+  void _notify(double h, double s, double v, double a) {
+    setState(() {
+      _h = h;
+      _s = s;
+      _v = v;
+    });
+    widget.onChanged?.call(HSVColor.fromAHSV(a, h, s, v).toColor());
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      bool hasSlider = widget.alphaPosition != ColorusPosition.none;
+      bool isVertical =
+          (widget.alphaPosition == ColorusPosition.left) ||
+          (widget.alphaPosition == ColorusPosition.right);
+
+      //--- Calculate ring size
+      double availableWidth = constraints.maxWidth;
+      double availableHeight = constraints.maxHeight;
+      if (hasSlider) {
+        if (isVertical) availableWidth -= 50;
+        if (!isVertical) availableHeight -= 50;
+      }
+      double ringAreaSize = min(availableWidth, availableHeight);
+      if (ringAreaSize == double.infinity) ringAreaSize = 250;
+
+      // Central Ring Component
+      Widget ringWidget = Center(
+        child: SizedBox(
+          width: ringAreaSize,
+          height: ringAreaSize,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: Size(ringAreaSize, ringAreaSize),
+                painter: ColorRingPainter(
+                  radius: (ringAreaSize / 2) - (widget.thickness / 2),
+                  width: widget.thickness,
                 ),
-
-                //--- Layer 2: The Interaction Layer for the Ring
-                GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onPanUpdate: (details) => _handleRingTouch(
-                    details.localPosition,
-                    center,
-                    ringRadius,
-                    squareSize,
-                  ),
-                  onPanDown: (details) => _handleRingTouch(
-                    details.localPosition,
-                    center,
-                    ringRadius,
-                    squareSize,
-                  ),
-                  //--- captures touches specifically for the Hue ring
-                  child: Container(color: Colors.transparent),
-                ),
-
-                //--- Layer 3: The Gradient Square
-                _buildGradientSelector(squareSize),
-
-                //--- Layer 4: The Ring Selector Dot
-                _buildRingSelector(size, ringRadius, radialWidth),
-              ],
-            ),
+              ),
+              _buildRingInteraction(ringAreaSize),
+              _buildGradientSelector(ringAreaSize),
+              _buildRingSelector(ringAreaSize),
+            ],
           ),
+        ),
+      );
+
+      if (widget.alphaPosition == ColorusPosition.none) return ringWidget;
+
+      // Alpha Component (Slider + Optional Label)
+      Widget alphaComponent = ColorusSlider(
+        orientation: isVertical ? Orientation.portrait : Orientation.landscape,
+        labelPosition: widget.alphaLabel,
+        baseColor: HSVColor.fromAHSV(1.0, _h, _s, _v).toColor(),
+        value: widget.color.a,
+        onChanged: (a) => _notify(_h, _s, _v, a),
+      );
+
+      return _applyLayout(ringWidget, alphaComponent);
+    },
+  );
+
+  Widget _applyLayout(Widget ring, Widget alpha) {
+    switch (widget.alphaPosition) {
+      case ColorusPosition.top:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [alpha, const SizedBox(height: 20), ring],
         );
-      },
+      case ColorusPosition.bottom:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [ring, const SizedBox(height: 20), alpha],
+        );
+      case ColorusPosition.left:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [alpha, const SizedBox(width: 20), ring],
+        );
+      case ColorusPosition.right:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [ring, const SizedBox(width: 20), alpha],
+        );
+      default:
+        return ring;
+    }
+  }
+
+  // --- Sub-Builders ---
+
+  Widget _buildRingInteraction(double size) {
+    double center = size / 2;
+    double radius = center - (widget.thickness / 2);
+    double sqSize = 1.4 * radius - widget.thickness;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onPanUpdate: (d) =>
+          _handleRingTouch(d.localPosition, center, radius, sqSize),
+      onPanDown: (d) =>
+          _handleRingTouch(d.localPosition, center, radius, sqSize),
+      child: Container(color: Colors.transparent),
     );
   }
 
   void _handleRingTouch(
-    Offset localPos,
+    Offset pos,
     double center,
-    double ringRadius,
-    double squareSize,
+    double radius,
+    double sqSize,
   ) {
-    double dx = localPos.dx - center;
-    double dy = localPos.dy - center;
-    double distance = sqrt(dx * dx + dy * dy);
-
-    // Ignore touches inside the square or too far outside the ring
-    double halfSquare = squareSize / 2;
-    if (dx.abs() < halfSquare && dy.abs() < halfSquare) return;
-    if (distance < ringRadius - thickness || distance > ringRadius + thickness)
+    double dx = pos.dx - center;
+    double dy = pos.dy - center;
+    if (dx.abs() < sqSize / 2 && dy.abs() < sqSize / 2) return;
+    double dist = sqrt(dx * dx + dy * dy);
+    if (dist < radius - widget.thickness || dist > radius + widget.thickness)
       return;
-
-    double angle = atan2(dy, dx);
-    double hue = (angle * 180 / pi) % 360;
-
-    final hsv = HSVColor.fromColor(color);
-    onChanged?.call(hsv.withHue(hue).toColor());
+    double newHue = (atan2(dy, dx) * 180 / pi) % 360;
+    _notify(newHue < 0 ? newHue + 360 : newHue, _s, _v, widget.color.a);
   }
 
-  Widget _buildRingSelector(double size, double radius, double thickness) {
-    double hsvHue = HSVColor.fromColor(color).hue;
-    double angle = hsvHue * pi / 180;
-
-    // We calculate the position relative to the local 'size' box
+  Widget _buildRingSelector(double size) {
+    double radius = (size / 2) - (widget.thickness / 2);
+    double angle = _h * pi / 180;
     return Positioned(
-      left: (size / 2) + radius * cos(angle) - (thickness / 2),
-      top: (size / 2) + radius * sin(angle) - (thickness / 2),
+      left: (size / 2) + radius * cos(angle) - (widget.thickness / 2),
+      top: (size / 2) + radius * sin(angle) - (widget.thickness / 2),
       child: IgnorePointer(
         child: Container(
-          width: thickness,
-          height: thickness,
+          width: widget.thickness,
+          height: widget.thickness,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: color,
+            color: widget.color,
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black45)],
           ),
@@ -121,109 +195,90 @@ class ColorusRing extends StatelessWidget {
     );
   }
 
-  Widget _buildGradientSelector(double size) {
+  Widget _buildGradientSelector(double ringSize) {
+    double radius = (ringSize / 2) - (widget.thickness / 2);
+    double size = 1.4 * radius - widget.thickness;
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
-      child: Container(
+      child: SizedBox(
         width: size,
         height: size,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+        child: GradientSelector(
+          hue: _h,
+          saturation: _s,
+          value: _v,
+          size: size,
+          onChanged: (s, v) => _notify(_h, s, v, widget.color.a),
         ),
-        child: GradientSelector(color: color, size: size, onChanged: onChanged),
       ),
     );
   }
 }
 
+// --- Supporting Painters ---
+
 class ColorRingPainter extends CustomPainter {
-  final double radius;
-  final double width;
+  final double radius, width;
 
   ColorRingPainter({required this.radius, required this.width});
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final rect = Rect.fromCircle(center: center, radius: radius);
-
-    final gradient = SweepGradient(
+    const gradient = SweepGradient(
       colors: [
-        for (double i = 0; i <= 360; i += 5)
-          HSVColor.fromAHSV(1, i, 1, 1).toColor(),
+        Color(0xFFFF0000),
+        Color(0xFFFFFF00),
+        Color(0xFF00FF00),
+        Color(0xFF00FFFF),
+        Color(0xFF0000FF),
+        Color(0xFFFF00FF),
+        Color(0xFFFF0000),
       ],
     );
-
-    final paint = Paint()
-      ..shader = gradient.createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = width;
-
-    canvas.drawCircle(center, radius, paint);
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..shader = gradient.createShader(
+          Rect.fromCircle(center: center, radius: radius),
+        )
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width,
+    );
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(ColorRingPainter old) => old.radius != radius;
 }
 
-class GradientSelector extends StatefulWidget {
-  final Color color;
-  final ValueChanged<Color>? onChanged;
-  final double size;
+class GradientSelector extends StatelessWidget {
+  final double hue, saturation, value, size;
+  final Function(double s, double v) onChanged;
 
   const GradientSelector({
     super.key,
-    required this.color,
-    required this.onChanged,
+    required this.hue,
+    required this.saturation,
+    required this.value,
     required this.size,
+    required this.onChanged,
   });
 
   @override
-  State<GradientSelector> createState() => _GradientSelectorState();
-}
-
-class _GradientSelectorState extends State<GradientSelector> {
-  bool _isDragging = false;
-
-  void _updateSV(Offset localPos, HSVColor currentHsv) {
-    // Clamping is key to stopping the "jump" at borders
-    double s = (localPos.dx / widget.size).clamp(0.0, 1.0);
-    double v = (1.0 - localPos.dy / widget.size).clamp(0.0, 1.0);
-    widget.onChanged?.call(currentHsv.withSaturation(s).withValue(v).toColor());
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final hsv = HSVColor.fromColor(widget.color);
-    final pureHueColor = hsv.withSaturation(1.0).withValue(1.0).toColor();
-
+    final pure = HSVColor.fromAHSV(1, hue, 1, 1).toColor();
     return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onPanStart: (_) => setState(() => _isDragging = true),
-      onPanEnd: (_) => setState(() => _isDragging = false),
-      onPanUpdate: (details) => _updateSV(details.localPosition, hsv),
-      onPanDown: (details) => _updateSV(details.localPosition, hsv),
+      onPanUpdate: (d) => onChanged(
+        (d.localPosition.dx / size).clamp(0, 1),
+        (1 - d.localPosition.dy / size).clamp(0, 1),
+      ),
       child: Stack(
-        clipBehavior: Clip.none,
-        // Allows the zoomed dot to "exit" the box slightly
         children: [
-          // Background Gradients
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.white, pureHueColor],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
+                gradient: LinearGradient(colors: [Colors.white, pure]),
               ),
             ),
           ),
@@ -238,31 +293,21 @@ class _GradientSelectorState extends State<GradientSelector> {
               ),
             ),
           ),
-          // Animated Selection Indicator
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 50),
-            left: (hsv.saturation * widget.size) - (_isDragging ? 15 : 10),
-            top: ((1 - hsv.value) * widget.size) - (_isDragging ? 15 : 10),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              width: _isDragging ? 30 : 20,
-              height: _isDragging ? 30 : 20,
+          Positioned(
+            left: (saturation * size) - 10,
+            top: ((1 - value) * size) - 10,
+            child: Container(
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: widget.color,
+                color: HSVColor.fromAHSV(1, hue, saturation, value).toColor(),
                 border: Border.all(
-                  color: hsv.value > 0.7 ? Colors.black54 : Colors.white70,
-                  width: _isDragging ? 3 : 2,
+                  color: value > 0.7 && saturation < 0.3
+                      ? Colors.black54
+                      : Colors.white,
+                  width: 2,
                 ),
-                boxShadow: _isDragging
-                    ? [
-                        const BoxShadow(
-                          blurRadius: 10,
-                          color: Colors.black38,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                    : [const BoxShadow(blurRadius: 4, color: Colors.black26)],
               ),
             ),
           ),

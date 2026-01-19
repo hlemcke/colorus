@@ -144,12 +144,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildRing() => Frame(
     label: 'Ring Chooser',
-    child: SizedBox(
-      height: 200,
-      width: 200,
-      child: ColorusRing(
-        color: color,
-        onChanged: (col) => setState(() => color = col),
+    child: Center(
+      child: SizedBox(
+        height: 200,
+        width: 250, // adjust width for AlphaSlider
+        child: ColorusRing(
+          color: color,
+          onChanged: (col) => setState(() => color = col),
+          // alphaPosition: ColorusPosition.right,
+          // alphaLabel: ColorusPosition.top,
+        ),
       ),
     ),
   );
