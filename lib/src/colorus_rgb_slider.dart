@@ -5,12 +5,14 @@ import 'colorus_slider.dart';
 class ColorusRGBSlider extends StatelessWidget {
   final Color color;
   final ValueChanged<Color>? onChanged;
+  final bool showValues;
   final bool withAlpha;
 
   const ColorusRGBSlider({
     super.key,
     required this.color,
     this.onChanged,
+    this.showValues = false,
     this.withAlpha = true,
   });
 
@@ -25,7 +27,6 @@ class ColorusRGBSlider extends StatelessWidget {
           _buildSlider(
             value: color.a,
             baseColor: color.withValues(alpha: 1.0),
-            // Show color at full opacity in gradient
             isAlpha: true,
             label: "A",
           ),
@@ -45,8 +46,9 @@ class ColorusRGBSlider extends StatelessWidget {
     return ColorusSlider(
       value: value,
       baseColor: baseColor,
-      withCheckerBoard: isAlpha,
       orientation: Orientation.landscape,
+      showValue: showValues,
+      withCheckerBoard: isAlpha,
       onChanged: (v) {
         if (onChanged == null) return;
         onChanged!(

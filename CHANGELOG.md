@@ -1,8 +1,8 @@
 ## 1.1.0
 
-* separated sliders into `ColorusSlider`
+* all sliders now use `ColorusSlider` which is also exported
 * added parameter `alphaPosition` to `ColorusRing` to add an Alpha-slider
-* added parameter `alphaLabel` to `ColorusRing` to show selected percentage
+* added parameter `showValue` to choosers with sliders and to `ColorusSlider`
 
 ## 1.0.1
 

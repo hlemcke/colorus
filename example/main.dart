@@ -96,7 +96,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildAction4Ring() => IconButton.outlined(
     icon: Icon(Icons.lightbulb_circle_outlined),
-    onPressed: () => _showRing(context, color),
+    onPressed: () => _showRing(context, color).then((col) {
+      if (col != null) setState(() => color = col);
+    }),
     tooltip: 'Open ring chooser in dialog',
   );
 
@@ -108,13 +110,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildAction4Wheel() => IconButton.outlined(
     icon: Icon(Icons.lightbulb_circle_outlined),
-    onPressed: () => _showWheel(context, color),
+    onPressed: () => _showWheel(context, color).then((col) {
+      if (col != null) setState(() => color = col);
+    }),
     tooltip: 'Open wheel chooser in dialog',
   );
 
   Widget _buildColor() => Frame(
     label: 'Selected Color - #${color.toARGB32().toRadixString(16)}',
-    child: Container(color: color, height: kMinInteractiveDimension),
+    child: Stack(
+      children: [
+        Align(alignment: .bottomCenter, child: Text('Background Text')),
+        Container(color: color, height: kMinInteractiveDimension),
+      ],
+    ),
   );
 
   Widget _buildGrid() => Frame(
@@ -138,6 +147,7 @@ class _MyHomePageState extends State<MyHomePage> {
     child: ColorusRGBSlider(
       color: color,
       onChanged: (col) => setState(() => color = col),
+      showValues: true,
       withAlpha: true,
     ),
   );
@@ -151,8 +161,8 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ColorusRing(
           color: color,
           onChanged: (col) => setState(() => color = col),
-          // alphaPosition: ColorusPosition.right,
-          // alphaLabel: ColorusPosition.top,
+          alphaPosition: ColorusPosition.right,
+          showValue: true,
         ),
       ),
     ),
@@ -174,7 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
       showAdaptiveDialog<Color?>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
-          title: Text('Colorus - Rainbow Grid'),
+          title: Text('Rainbow Grid'),
           content: ColorusGrid(
             color: clr,
             onChanged: (col) => setState(() => color = col),
@@ -186,7 +196,7 @@ class _MyHomePageState extends State<MyHomePage> {
       showAdaptiveDialog<Color?>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
-          title: Text('Colorus - Hue Slider'),
+          title: Text('Hue Slider'),
           content: ColorusHueSlider(
             color: clr,
             onChanged: (col) => setState(() => color = col),
@@ -198,7 +208,7 @@ class _MyHomePageState extends State<MyHomePage> {
       showAdaptiveDialog<Color?>(
         context: context,
         builder: (BuildContext context) => AlertDialog(
-          title: Text('Colorus - RGB-Sliders'),
+          title: Text('RGB-Slider'),
           content: ColorusRGBSlider(
             color: clr,
             onChanged: (col) => setState(() => color = col),
@@ -206,47 +216,63 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       );
 
-  Future<Color?> _showRing(BuildContext context, Color clr) =>
-      showAdaptiveDialog<Color?>(
-        context: context,
-        builder: (BuildContext context) {
-          Color dialogColor = clr;
-          return AlertDialog(
-            title: Text('Colorus - Ring'),
-            content: StatefulBuilder(
-              builder: (context, setState) => SizedBox(
-                width: 190,
-                height: 170,
-                child: ColorusRing(
-                  color: dialogColor,
-                  onChanged: (col) => setState(() => dialogColor = col),
-                ),
+  Future<Color?> _showRing(BuildContext context, Color initialColor) async {
+    Color dialogColor = initialColor;
+    await showAdaptiveDialog<Color?>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: _showTitle(context, 'Ring-Chooser'),
+          content: StatefulBuilder(
+            builder: (context, setState) => SizedBox(
+              width: 250,
+              height: 200,
+              child: ColorusRing(
+                color: dialogColor,
+                onChanged: (col) => setState(() => dialogColor = col),
+                alphaPosition: .right,
+                showValue: true,
               ),
             ),
-          );
-        },
-      );
+          ),
+        );
+      },
+    );
+    return dialogColor;
+  }
 
-  Future<Color?> _showWheel(BuildContext context, Color clr) =>
-      showAdaptiveDialog<Color?>(
-        context: context,
-        builder: (BuildContext context) {
-          Color dialogColor = clr;
-          return AlertDialog(
-            title: Text('Colorus - Ring'),
-            content: StatefulBuilder(
-              builder: (context, setState) => SizedBox(
-                width: 200,
-                height: 200,
-                child: ColorusWheelWithToggle(
-                  color: dialogColor,
-                  onChanged: (col) => setState(() => dialogColor = col),
-                ),
+  Widget _showTitle(BuildContext context, String label) => AppBar(
+    title: Text(label),
+    actions: [
+      IconButton(
+        icon: Icon(Icons.cancel_outlined),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+    ],
+  );
+
+  Future<Color?> _showWheel(BuildContext context, Color initialColor) async {
+    Color dialogColor = initialColor;
+    await showAdaptiveDialog<Color?>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: _showTitle(context, 'Wheel-Chooser'),
+          content: StatefulBuilder(
+            builder: (context, setState) => SizedBox(
+              width: 200,
+              height: 200,
+              child: ColorusWheelWithToggle(
+                color: dialogColor,
+                onChanged: (col) => setState(() => dialogColor = col),
               ),
             ),
-          );
-        },
-      );
+          ),
+        );
+      },
+    );
+    return dialogColor;
+  }
 }
 
 ///

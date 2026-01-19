@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -8,20 +9,22 @@ import 'package:flutter/material.dart';
 enum ColorusPosition { top, bottom, left, right, none }
 
 ///
-/// Slider for red, green, blue, alpha
+/// Slider for red, green, blue, alpha, hue
 ///
 class ColorusSlider extends StatelessWidget {
-  static const double interactiveHeight = 30;
+  static const double interactiveHeight = 36;
+  static const double sliderGap = 5;
   static const double sliderHeight = 48;
-  static const double trackBarHeight = 16;
+  static const double thumbRadius = 14;
+  static const double trackBarHeight = 18;
+
   final Color baseColor;
   final bool isHue;
-  final ColorusPosition labelPosition;
   final ValueChanged<double> onChanged;
   final Orientation orientation;
   final bool withCheckerBoard;
+  final bool showValue;
   late final bool _isVertical;
-  late final String _percentage;
   late final double _value;
 
   ColorusSlider({
@@ -30,119 +33,57 @@ class ColorusSlider extends StatelessWidget {
     required this.baseColor,
     required this.onChanged,
     this.isHue = false,
-    this.labelPosition = ColorusPosition.none,
     this.orientation = Orientation.landscape,
+    this.showValue = false,
     this.withCheckerBoard = false,
   }) {
     _isVertical = orientation == Orientation.portrait;
     _value = clampDouble(value, 0, 1);
-    _percentage = "${(_value * 100).round()}%";
   }
 
   @override
-  Widget build(BuildContext context) {
-    //--- The Slider Component
-    Widget sliderCore = RotatedBox(
-      quarterTurns: _isVertical ? 3 : 0,
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: .none,
-        children: [
-          //--- Slim visual track (background)
-          ClipRRect(
-            borderRadius: BorderRadius.circular(trackBarHeight / 2),
-            child: CustomPaint(
-              size: const Size(double.infinity, trackBarHeight),
-              painter: ColorusTrackPainter(
-                color: baseColor,
-                isHue: isHue,
-                value: _value,
-                withCheckerBoard: withCheckerBoard,
-              ),
-            ),
-          ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              activeTrackColor: Colors.transparent,
-              inactiveTrackColor: Colors.transparent,
-              minThumbSeparation: 4,
-              overlayColor: Colors.black.withValues(alpha: 0.1),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-              thumbColor: Colors.white,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
-              trackHeight: trackBarHeight,
-              trackShape: const _FullWidthTrackShape(),
-            ),
-            child: MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(navigationMode: .directional),
-              child: Slider(
-                min: 0,
-                max: 1,
-                value: _value,
-                onChanged: onChanged,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (labelPosition == ColorusPosition.none) {
-      return _isVertical
-          ? SizedBox(width: sliderHeight, child: sliderCore)
-          : sliderCore;
-    }
-
-    // 2. The Label
-    Widget label = SizedBox(
-      width: _isVertical ? sliderHeight : null,
-      child: Text(
-        _percentage,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-        textAlign: .center,
-      ),
-    );
-
-    // 3. Dynamic Layout based on labelPosition
-    return _buildPositionedLayout(sliderCore, label);
-  }
-
-  Widget _buildPositionedLayout(Widget slider, Widget label) {
-    // Determine if the container should be a Row or Column
-    final bool isColumn =
-        labelPosition == ColorusPosition.top ||
-        labelPosition == ColorusPosition.bottom;
-
-    return Flex(
-      direction: isColumn ? Axis.vertical : Axis.horizontal,
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
+  Widget build(BuildContext context) => RotatedBox(
+    quarterTurns: _isVertical ? 3 : 0,
+    child: Stack(
+      alignment: Alignment.center,
+      clipBehavior: .none,
       children: [
-        if (labelPosition == ColorusPosition.top ||
-            labelPosition == ColorusPosition.left)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: label,
+        //--- Slim visual track (background)
+        ClipRRect(
+          borderRadius: BorderRadius.circular(trackBarHeight / 2),
+          child: CustomPaint(
+            size: const Size(double.infinity, trackBarHeight),
+            painter: ColorusTrackPainter(
+              color: baseColor,
+              isHue: isHue,
+              value: _value,
+              withCheckerBoard: withCheckerBoard,
+            ),
           ),
-
-        // Use Expanded if the slider needs to fill space in its main axis
-        if (!_isVertical && !isColumn)
-          Expanded(child: slider)
-        else if (_isVertical && isColumn)
-          Expanded(child: slider)
-        else if (_isVertical)
-          SizedBox(width: 24, child: slider)
-        else
-          slider,
-
-        if (labelPosition == ColorusPosition.bottom ||
-            labelPosition == ColorusPosition.right)
-          label,
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: Colors.transparent,
+            inactiveTrackColor: Colors.transparent,
+            minThumbSeparation: 4,
+            overlayColor: Colors.black.withValues(alpha: 0.1),
+            overlayShape: const RoundSliderOverlayShape(
+              overlayRadius: thumbRadius,
+            ),
+            thumbColor: Colors.white,
+            thumbShape: ColorusThumbPainter(
+              orientation: orientation,
+              showValue: showValue,
+              value: (_value * 100).round(),
+            ),
+            trackHeight: trackBarHeight,
+            trackShape: const _FullWidthTrackShape(),
+          ),
+          child: Slider(min: 0, max: 1, value: _value, onChanged: onChanged),
+        ),
       ],
-    );
-  }
+    ),
+  );
 }
 
 ///
@@ -215,6 +156,111 @@ class ColorusTrackPainter extends CustomPainter {
       old.color != color ||
       old.isHue != isHue ||
       old.withCheckerBoard != withCheckerBoard;
+}
+
+///
+/// Custom painter to draw the number inside the thumb
+///
+class ColorusThumbPainter extends SliderComponentShape {
+  final Orientation orientation;
+  final bool showValue;
+  final int value;
+
+  ColorusThumbPainter({
+    required this.orientation,
+    required this.value,
+    this.showValue = false,
+  });
+
+  @override
+  Size getPreferredSize(bool isEnabled, bool isDiscrete) =>
+      Size.fromRadius(ColorusSlider.thumbRadius);
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset center, {
+    required Animation<double> activationAnimation,
+    required Animation<double> enableAnimation,
+    required bool isDiscrete,
+    required TextPainter labelPainter,
+    required RenderBox parentBox,
+    required SliderThemeData sliderTheme,
+    required TextDirection textDirection,
+    required double value,
+    required double textScaleFactor,
+    required Size sizeWithOverflow,
+  }) {
+    final Canvas canvas = context.canvas;
+    final double radius = ColorusSlider.thumbRadius;
+
+    //--- 1. Draw shadow when active / dragged
+    // activationAnimation.value is 0.0 when idle, and 1.0 when active/dragged.
+    if (activationAnimation.value > 0) {
+      final double activeProgress = activationAnimation.value;
+
+      final Paint shadowPaint = Paint()
+        ..color = Colors.black.withValues(alpha: 0.75 * activeProgress)
+        ..maskFilter = MaskFilter.blur(
+          BlurStyle.normal,
+          6 * activeProgress, // Shadow gets blurrier as it "lifts"
+        );
+
+      // Draw the "lifted" shadow
+      canvas.drawCircle(center, radius, shadowPaint);
+    }
+
+    // 2. Draw the white thumb circle
+    final Paint thumbPaint = Paint()
+      ..color = sliderTheme.thumbColor ?? Colors.white
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius, thumbPaint);
+
+    // 3. Optional: Draw a thin border so the thumb doesn't "disappear" on white backgrounds
+    final Paint borderPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.1)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+    canvas.drawCircle(center, radius, borderPaint);
+
+    if (showValue) {
+      // 2. Draw the text inside
+      TextSpan span = TextSpan(
+        style: TextStyle(
+          fontSize: ColorusSlider.thumbRadius * 0.8,
+          fontWeight: FontWeight.bold,
+          color: Colors.black, // Text color
+        ),
+        text: '${this.value}',
+      );
+
+      TextPainter tp = TextPainter(
+        text: span,
+        textAlign: TextAlign.center,
+        textDirection: TextDirection.ltr,
+      );
+
+      tp.layout();
+
+      // 3. Counter-rotate the canvas for the text
+      canvas.save(); // Save current state
+
+      // Move the canvas origin to the center of the thumb
+      canvas.translate(center.dx, center.dy);
+
+      // If vertical, the RotatedBox turned it 270 degrees (3 quarter turns).
+      // We rotate it back 90 degrees (or -270) to make it upright.
+      if (orientation == Orientation.portrait) {
+        canvas.rotate(math.pi / 2);
+      }
+
+      // 4. Paint the text at the (now rotated) center
+      // Since we translated to 'center', the new local center is Offset.zero
+      Offset textOffset = Offset(-(tp.width / 2), -(tp.height / 2));
+      tp.paint(canvas, textOffset);
+      canvas.restore();
+    }
+  }
 }
 
 class _FullWidthTrackShape extends RoundedRectSliderTrackShape {

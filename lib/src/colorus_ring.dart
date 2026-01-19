@@ -9,7 +9,7 @@ class ColorusRing extends StatefulWidget {
   final ValueChanged<Color>? onChanged;
   final double thickness;
   final ColorusPosition alphaPosition;
-  final ColorusPosition alphaLabel; // Position of the percentage text
+  final bool showValue;
 
   const ColorusRing({
     super.key,
@@ -17,7 +17,7 @@ class ColorusRing extends StatefulWidget {
     this.onChanged,
     this.thickness = 24,
     this.alphaPosition = ColorusPosition.none,
-    this.alphaLabel = ColorusPosition.none,
+    this.showValue = false,
   });
 
   @override
@@ -102,13 +102,14 @@ class _ColorusRingState extends State<ColorusRing> {
 
       if (widget.alphaPosition == ColorusPosition.none) return ringWidget;
 
-      // Alpha Component (Slider + Optional Label)
+      // Alpha Component (Slider)
       Widget alphaComponent = ColorusSlider(
-        orientation: isVertical ? Orientation.portrait : Orientation.landscape,
-        labelPosition: widget.alphaLabel,
         baseColor: HSVColor.fromAHSV(1.0, _h, _s, _v).toColor(),
-        value: widget.color.a,
         onChanged: (a) => _notify(_h, _s, _v, a),
+        orientation: isVertical ? Orientation.portrait : Orientation.landscape,
+        showValue: widget.showValue,
+        value: widget.color.a,
+        withCheckerBoard: true,
       );
 
       return _applyLayout(ringWidget, alphaComponent);
@@ -168,8 +169,9 @@ class _ColorusRingState extends State<ColorusRing> {
     double dy = pos.dy - center;
     if (dx.abs() < sqSize / 2 && dy.abs() < sqSize / 2) return;
     double dist = sqrt(dx * dx + dy * dy);
-    if (dist < radius - widget.thickness || dist > radius + widget.thickness)
+    if (dist < radius - widget.thickness || dist > radius + widget.thickness) {
       return;
+    }
     double newHue = (atan2(dy, dx) * 180 / pi) % 360;
     _notify(newHue < 0 ? newHue + 360 : newHue, _s, _v, widget.color.a);
   }
