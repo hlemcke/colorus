@@ -1,3 +1,7 @@
+## 1.1.1
+
+* fixed bug in `ColorusRing` when initial color is black
+
 ## 1.1.0
 
 * all sliders now use `ColorusSlider` which is also exported

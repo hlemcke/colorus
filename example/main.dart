@@ -40,7 +40,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   /// Displayed and selected color
-  Color color = Color.fromARGB(255, 0, 0, 255);
+  Color color = Colors.deepOrange;
 
   @override
   Widget build(BuildContext context) => Scaffold(

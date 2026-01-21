@@ -30,7 +30,10 @@ class _ColorusRingState extends State<ColorusRing> {
   @override
   void initState() {
     super.initState();
-    _syncInternalHSV(widget.color);
+    final hsv = HSVColor.fromColor(widget.color);
+    _h = hsv.hue;
+    _s = hsv.saturation;
+    _v = hsv.value;
   }
 
   @override
@@ -39,15 +42,6 @@ class _ColorusRingState extends State<ColorusRing> {
     if (widget.color.toARGB32() != oldWidget.color.toARGB32()) {
       _syncInternalHSV(widget.color);
     }
-  }
-
-  void _syncInternalHSV(Color color) {
-    final hsv = HSVColor.fromColor(color);
-    if (hsv.saturation > 0.01 || hsv.value > 0.01) {
-      _h = hsv.hue;
-    }
-    _s = hsv.saturation;
-    _v = hsv.value;
   }
 
   void _notify(double h, double s, double v, double a) {
@@ -214,6 +208,15 @@ class _ColorusRingState extends State<ColorusRing> {
         ),
       ),
     );
+  }
+
+  void _syncInternalHSV(Color color) {
+    final hsv = HSVColor.fromColor(color);
+    if (hsv.saturation > 0.01 || hsv.value > 0.01) {
+      _h = hsv.hue;
+    }
+    _s = hsv.saturation;
+    _v = hsv.value;
   }
 }
 
