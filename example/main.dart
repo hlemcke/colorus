@@ -116,8 +116,8 @@ class _MyHomePageState extends State<MyHomePage> {
     tooltip: 'Open wheel chooser in dialog',
   );
 
-  Widget _buildColor() => Frame(
-    label: 'Selected Color - #${color.toARGB32().toRadixString(16)}',
+  Widget _buildColor() => LabeledFrame(
+    label: Text('Selected Color - #${color.toARGB32().toRadixString(16)}'),
     child: Stack(
       children: [
         Align(alignment: .bottomCenter, child: Text('Background Text')),
@@ -126,24 +126,24 @@ class _MyHomePageState extends State<MyHomePage> {
     ),
   );
 
-  Widget _buildGrid() => Frame(
-    label: 'Grid',
+  Widget _buildGrid() => LabeledFrame(
+    label: Text('Grid'),
     child: ColorusGrid(
       color: color,
       onChanged: (col) => setState(() => color = col),
     ),
   );
 
-  Widget _buildHueSlider() => Frame(
-    label: 'HUE Slider',
+  Widget _buildHueSlider() => LabeledFrame(
+    label: Text('HUE Slider'),
     child: ColorusHueSlider(
       color: color,
       onChanged: (col) => setState(() => color = col),
     ),
   );
 
-  Widget _buildRGBSlider() => Frame(
-    label: 'RGB Slider',
+  Widget _buildRGBSlider() => LabeledFrame(
+    label: Text('RGB Slider'),
     child: ColorusRGBSlider(
       color: color,
       onChanged: (col) => setState(() => color = col),
@@ -152,8 +152,8 @@ class _MyHomePageState extends State<MyHomePage> {
     ),
   );
 
-  Widget _buildRing() => Frame(
-    label: 'Ring Chooser',
+  Widget _buildRing() => LabeledFrame(
+    label: Text('Ring Chooser'),
     child: Center(
       child: SizedBox(
         height: 200,
@@ -161,21 +161,26 @@ class _MyHomePageState extends State<MyHomePage> {
         child: ColorusRing(
           color: color,
           onChanged: (col) => setState(() => color = col),
-          alphaPosition: ColorusPosition.right,
+          alphaPosition: ColorusSliderPosition.right,
           showValue: true,
         ),
       ),
     ),
   );
 
-  Widget _buildWheel() => Frame(
-    label: 'Wheel Chooser',
-    child: SizedBox(
-      height: 200,
-      width: 200,
-      child: ColorusWheelWithToggle(
-        color: color,
-        onChanged: (col) => setState(() => color = col),
+  Widget _buildWheel() => LabeledFrame(
+    label: Text('Wheel Chooser'),
+    child: Center(
+      child: SizedBox(
+        height: 250,
+        width: 250,
+        child: ColorusWheel(
+          color: color,
+          onChanged: (col) => setState(() => color = col),
+          alphaPosition: .right,
+          showValue: true,
+          togglePosition: .bottomLeft,
+        ),
       ),
     ),
   );
@@ -221,17 +226,19 @@ class _MyHomePageState extends State<MyHomePage> {
     await showAdaptiveDialog<Color?>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: _showTitle(context, 'Ring-Chooser'),
-          content: StatefulBuilder(
-            builder: (context, setState) => SizedBox(
+        ColorusSliderPosition alphaPosition = .none;
+        bool showValue = false;
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: _showTitle(context, 'Ring-Chooser'),
+            content: SizedBox(
               width: 250,
-              height: 200,
+              height: 250,
               child: ColorusRing(
                 color: dialogColor,
                 onChanged: (col) => setState(() => dialogColor = col),
-                alphaPosition: .right,
-                showValue: true,
+                alphaPosition: alphaPosition,
+                showValue: showValue,
               ),
             ),
           ),
@@ -253,18 +260,47 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<Color?> _showWheel(BuildContext context, Color initialColor) async {
     Color dialogColor = initialColor;
+    ColorusSliderPosition sliderPosition = .none;
+    ColorusTogglePosition togglePosition = .none;
+    bool showValue = true;
     await showAdaptiveDialog<Color?>(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: _showTitle(context, 'Wheel-Chooser'),
-          content: StatefulBuilder(
-            builder: (context, setState) => SizedBox(
-              width: 200,
-              height: 200,
-              child: ColorusWheelWithToggle(
-                color: dialogColor,
-                onChanged: (col) => setState(() => dialogColor = col),
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: _showTitle(context, 'Wheel-Chooser'),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: .spaceBetween,
+                    children: [
+                      AlphaPositioner(
+                        onChanged: (v) => setState(() => sliderPosition = v),
+                        value: sliderPosition,
+                      ),
+                      TogglePositioner(
+                        onChanged: (v) => setState(() => togglePosition = v),
+                        value: togglePosition,
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+                  LabeledFrame(
+                    label: Text('Wheel'),
+                    child: SizedBox(
+                      width: 300,
+                      height: 300,
+                      child: ColorusWheel(
+                        color: dialogColor,
+                        onChanged: (col) => setState(() => dialogColor = col),
+                        alphaPosition: sliderPosition,
+                        showValue: showValue,
+                        togglePosition: togglePosition,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -276,20 +312,99 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 ///
-/// Frame with label
-///
-class Frame extends StatelessWidget {
-  final Widget child;
-  final String label;
+class AlphaPositioner extends StatelessWidget {
+  final ValueChanged<ColorusSliderPosition> onChanged;
+  final ColorusSliderPosition value;
 
-  const Frame({super.key, required this.label, required this.child});
+  const AlphaPositioner({
+    super.key,
+    required this.onChanged,
+    required this.value,
+  });
 
   @override
-  Widget build(BuildContext context) => InputDecorator(
-    decoration: InputDecoration(
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-      labelText: label,
-    ),
-    child: child,
+  Widget build(BuildContext context) => DropdownMenu<ColorusSliderPosition>(
+    initialSelection: value,
+    label: Text('Alpha-Position'),
+    onSelected: (v) => onChanged(v!),
+    dropdownMenuEntries: [
+      for (ColorusSliderPosition pos in ColorusSliderPosition.values)
+        DropdownMenuEntry(value: pos, label: pos.name),
+    ],
+  );
+}
+
+///
+class TogglePositioner extends StatelessWidget {
+  final ValueChanged<ColorusTogglePosition> onChanged;
+  final ColorusTogglePosition value;
+
+  const TogglePositioner({
+    super.key,
+    required this.onChanged,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) => DropdownMenu<ColorusTogglePosition>(
+    initialSelection: value,
+    label: Text('Toggle-Position'),
+    onSelected: (v) => onChanged(v!),
+    dropdownMenuEntries: [
+      for (ColorusTogglePosition pos in ColorusTogglePosition.values)
+        DropdownMenuEntry(value: pos, label: pos.name),
+    ],
+  );
+}
+
+///
+/// Frame with label
+///
+///
+/// A rounded frame around a [child] with an optional [label]
+///
+class LabeledFrame extends StatelessWidget {
+  final Widget child;
+  final Widget? label;
+  final Color? labelColor;
+  final bool labelFrame;
+  final EdgeInsetsGeometry padding;
+
+  const LabeledFrame({
+    super.key,
+    this.label,
+    this.labelColor,
+    this.labelFrame = false,
+    this.padding = const EdgeInsets.all(20),
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    // --- allow the label to be placed outside the bounds
+    clipBehavior: Clip.none,
+    children: [
+      Container(
+        padding: padding,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+        child: child,
+      ),
+      if (label != null)
+        Positioned(
+          top: -10.0,
+          left: 10.0,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(4.0),
+              color: labelColor ?? Theme.of(context).colorScheme.surface,
+            ),
+            child: label,
+          ),
+        ),
+    ],
   );
 }

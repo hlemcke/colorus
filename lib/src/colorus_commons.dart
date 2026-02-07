@@ -1,37 +1,53 @@
 import 'dart:math';
 
+import 'package:colorus/colorus.dart';
 import 'package:flutter/material.dart';
 
 ///
+/// Helper class to compute values for `ColorusRing` and `ColorusWheel`
 ///
-///
-class Circle extends StatelessWidget {
-  /// Color of border
-  final Color borderColor;
+class ColorusCircle {
+  final double spacing = 12;
+  final double sliderThickness = 50;
+  final double toggleSize = 24;
+  late final double boxLength, diameter, sliderLength;
+  late final bool hasSlider, hasToggle, isVertical;
 
-  /// Background color
-  final Color color;
+  ColorusCircle({
+    required BoxConstraints constraints,
+    ColorusSliderPosition sliderPosition = .none,
+    ColorusTogglePosition togglePosition = .none,
+  }) {
+    hasSlider = sliderPosition != .none;
+    hasToggle = togglePosition != .none;
+    isVertical = (sliderPosition == .left) || (sliderPosition == .right);
+    double availW = constraints.hasInfiniteWidth ? 300 : constraints.maxWidth;
+    double availH = constraints.hasInfiniteHeight ? 300 : constraints.maxHeight;
 
-  /// Radius of circle
-  final double radius;
+    if (hasSlider) {
+      availW -= isVertical ? sliderThickness : 0;
+      availH -= isVertical ? 0 : sliderThickness;
+    }
 
-  const Circle({
-    super.key,
-    required this.radius,
-    this.borderColor = Colors.black,
-    this.color = Colors.white,
-  });
+    diameter = min(availH, availW).clamp(100.0, double.infinity);
 
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 2 * radius,
-    height: 2 * radius,
-    decoration: BoxDecoration(
-      border: Border.all(color: borderColor, width: 2),
-      color: color,
-      shape: BoxShape.circle,
-    ),
-  );
+    bool hasConflict = false;
+    if (hasSlider && hasToggle) {
+      hasConflict = switch (sliderPosition) {
+        .top => togglePosition == .topLeft || togglePosition == .topRight,
+        .right => togglePosition == .topRight || togglePosition == .bottomRight,
+        .bottom =>
+          togglePosition == .bottomRight || togglePosition == .bottomLeft,
+        .left => togglePosition == .bottomLeft || togglePosition == .topLeft,
+        _ => false,
+      };
+    }
+    sliderLength = diameter - (hasConflict ? toggleSize : 0);
+  }
+
+  Widget get hGap => SizedBox(width: spacing);
+
+  Widget get vGap => SizedBox(height: spacing);
 }
 
 ///

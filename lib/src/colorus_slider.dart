@@ -4,9 +4,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 ///
-/// Positioning
+/// Positioning of a slider when used by `ColorusRing` or `ColorusWheel`
 ///
-enum ColorusPosition { top, bottom, left, right, none }
+enum ColorusSliderPosition { top, bottom, left, right, none }
 
 ///
 /// Slider for red, green, blue, alpha, hue
@@ -79,7 +79,12 @@ class ColorusSlider extends StatelessWidget {
             trackHeight: trackBarHeight,
             trackShape: const _FullWidthTrackShape(),
           ),
-          child: Slider(min: 0, max: 1, value: _value, onChanged: onChanged),
+          child: Slider(
+            min: 0.0,
+            max: 1.0,
+            value: _value,
+            onChanged: onChanged,
+          ),
         ),
       ],
     ),

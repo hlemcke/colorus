@@ -1,71 +1,210 @@
 import 'dart:math';
 
+import 'package:colorus/src/colorus_commons.dart';
 import 'package:flutter/material.dart';
 
-class ColorusWheel extends StatelessWidget {
+import '../colorus.dart';
+
+///
+/// Positioning of the toggle used by `ColorusWheel`
+///
+enum ColorusTogglePosition { bottomLeft, bottomRight, topLeft, topRight, none }
+
+///
+class ColorusWheel extends StatefulWidget {
   final Color color;
   final bool isBlackMode;
   final ValueChanged<Color>? onChanged;
+  final ColorusSliderPosition alphaPosition;
+  final ColorusTogglePosition togglePosition;
+  final bool showValue;
 
+  ///
+  /// A wheel with all rainbow colors and the gradient from center to border
+  ///
+  /// `alphaPosition` will add a slider to set the alpha value.
+  /// Otherwise it will remain unchanged.
+  ///
+  /// `showValue: true` will display the alpha value inside its selector
+  ///
+  /// `togglePosition` will add a toggle to change the gradient from center to
+  /// border or the other way round.
+  ///
   const ColorusWheel({
     super.key,
     required this.color,
-    required this.isBlackMode,
     this.onChanged,
+    this.alphaPosition = ColorusSliderPosition.none,
+    this.isBlackMode = false,
+    this.showValue = false,
+    this.togglePosition = ColorusTogglePosition.none,
   });
+
+  @override
+  State<StatefulWidget> createState() => _ColorusWheelState();
+}
+
+class _ColorusWheelState extends State<ColorusWheel> {
+  late Color _color;
+  late double _a, _h, _s, _v;
+  late bool _isBlackMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _color = widget.color;
+    _isBlackMode = widget.isBlackMode;
+    final hsv = HSVColor.fromColor(widget.color);
+    _a = widget.color.a;
+    _h = hsv.hue;
+    _s = hsv.saturation;
+    _v = hsv.value;
+
+    //--- Adjust alpha if no slider and its near zero
+    if ((_a < 0.05) && (widget.alphaPosition == .none)) _a = 1.0;
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        // 1. Determine the square size that fits the constraints
-        double size = min(constraints.maxHeight, constraints.maxWidth);
-        if (size == double.infinity) size = 200;
-
-        double radius = size / 2;
-
-        // 2. Map Color -> Coordinates
-        final hsv = HSVColor.fromColor(color);
-        final double angle = hsv.hue * pi / 180;
-        final double distance =
-            (isBlackMode ? hsv.value : hsv.saturation) * radius;
-
-        final Offset indicatorPos = Offset(
-          radius + distance * cos(angle),
-          radius + distance * sin(angle),
+        ColorusCircle circle = ColorusCircle(
+          constraints: constraints,
+          sliderPosition: widget.alphaPosition,
+          togglePosition: widget.togglePosition,
         );
 
-        return Center(
-          child: SizedBox(
-            width: size,
-            height: size,
-            child: GestureDetector(
-              // The hit test and coordinates are now bound to this square
-              behavior: HitTestBehavior.opaque,
-              onPanUpdate: (details) =>
-                  _handleTouch(details.localPosition, radius),
-              onPanDown: (details) =>
-                  _handleTouch(details.localPosition, radius),
-              child: Stack(
-                children: [
-                  RepaintBoundary(
-                    child: CustomPaint(
-                      size: Size(size, size),
-                      painter: ColorusWheelPainter(isBlackMode: isBlackMode),
-                    ),
-                  ),
-                  // The Selector Dot
-                  Positioned(
-                    left: indicatorPos.dx - 12,
-                    top: indicatorPos.dy - 12,
-                    child: _buildIndicator(hsv),
-                  ),
-                ],
-              ),
+        Widget wheel = _buildWheel(circle);
+        Widget slider = _buildSlider(circle);
+        Widget toggle = _buildToggle(circle);
+
+        return _applyLayout(circle, wheel, slider, toggle);
+      },
+    );
+  }
+
+  @override
+  void didUpdateWidget(ColorusWheel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.color.toARGB32() != oldWidget.color.toARGB32()) {
+      _syncInternalHSV(widget.color);
+      _color = widget.color;
+    }
+  }
+
+  Widget _applyLayout(
+    ColorusCircle circle,
+    Widget wheel,
+    Widget slider,
+    Widget toggle,
+  ) {
+    double dt = circle.sliderThickness; // Delta for slider
+    ColorusSliderPosition ap = widget.alphaPosition;
+    return Stack(
+      children: [
+        //--- The optional alpha-slider
+        switch (widget.alphaPosition) {
+          .none => SizedBox.shrink(),
+          .top => Positioned(top: 0, left: 0, right: dt, child: slider),
+          .right => Positioned(right: 0, top: 0, bottom: dt, child: slider),
+          .bottom => Positioned(bottom: 0, left: 0, right: dt, child: slider),
+          .left => Positioned(left: 0, top: 0, bottom: dt, child: slider),
+        },
+        //--- The wheel itself
+        switch (widget.alphaPosition) {
+          .none => wheel,
+          .top => Positioned(bottom: 0, child: wheel),
+          .right => Positioned(left: 0, child: wheel),
+          .bottom => Positioned(top: 0, child: wheel),
+          .left => Positioned(right: 0, child: wheel),
+        },
+        //--- The optional toggle action
+        switch (widget.togglePosition) {
+          .none => SizedBox.shrink(),
+          .topRight => Positioned(
+            top: ap == .top ? dt : 0,
+            right: ap == .top || ap == .right || ap == .bottom ? dt : 0,
+            child: toggle,
+          ),
+          .bottomRight => Positioned(
+            bottom: ap == .bottom || ap == .left || ap == .right ? dt : 0,
+            right: ap == .top || ap == .bottom || ap == .right ? dt : 0,
+            child: toggle,
+          ),
+          .bottomLeft => Positioned(
+            bottom: ap == .bottom || ap == .left || ap == .right ? dt : 0,
+            left: ap == .left ? dt : 0,
+            child: toggle,
+          ),
+          .topLeft => Positioned(
+            left: ap == .left ? dt : 0,
+            top: ap == .top ? dt : 0,
+            child: toggle,
+          ),
+        },
+      ],
+    );
+  }
+
+  /// Builds the alpha-slider
+  Widget _buildSlider(ColorusCircle circle) {
+    if (!circle.hasSlider) return const SizedBox.shrink();
+
+    return SizedBox(
+      width: circle.isVertical ? circle.sliderThickness : circle.sliderLength,
+      height: circle.isVertical ? circle.sliderLength : circle.sliderThickness,
+      child: ColorusSlider(
+        value: _a,
+        baseColor: _color,
+        onChanged: (alpha) => _notify(alpha, _h, _s, _v),
+        orientation: circle.isVertical ? .portrait : .landscape,
+        showValue: widget.showValue,
+        withCheckerBoard: true,
+      ),
+    );
+  }
+
+  Widget _buildToggle(ColorusCircle circle) => (widget.togglePosition == .none)
+      ? const SizedBox.shrink()
+      : ColorusWheelToggle(
+          isBlackMode: _isBlackMode,
+          onToggle: () => setState(() => _isBlackMode = !_isBlackMode),
+        );
+
+  /// Builds the wheel
+  Widget _buildWheel(ColorusCircle circle) {
+    final double radius = circle.diameter / 2;
+    final double angle = _h * pi / 180;
+    final double distance = (_isBlackMode ? _v : _s) * radius;
+
+    final Offset indicatorPos = Offset(
+      radius + distance * cos(angle),
+      radius + distance * sin(angle),
+    );
+
+    return SizedBox(
+      width: circle.diameter,
+      height: circle.diameter,
+      child: Stack(
+        children: [
+          GestureDetector(
+            // The hit test and coordinates are now bound to this square
+            behavior: HitTestBehavior.opaque,
+            onPanUpdate: (d) => _handleTouch(d.localPosition, radius),
+            onPanDown: (d) => _handleTouch(d.localPosition, radius),
+            child: CustomPaint(
+              size: Size(circle.diameter, circle.diameter),
+              painter: _ColorusWheelPainter(isBlackMode: _isBlackMode),
             ),
           ),
-        );
-      },
+          // The Selector Dot
+          Positioned(
+            left: indicatorPos.dx - 12,
+            top: indicatorPos.dy - 12,
+            child: IgnorePointer(child: _buildIndicator()),
+          ),
+        ],
+      ),
     );
   }
 
@@ -78,37 +217,89 @@ class ColorusWheel extends StatelessWidget {
     double angle = atan2(dy, dx) * 180 / pi;
     if (angle < 0) angle += 360;
 
-    final Color newColor = isBlackMode
-        ? HSVColor.fromAHSV(1.0, angle, 1.0, factor).toColor()
-        : HSVColor.fromAHSV(1.0, angle, factor, 1.0).toColor();
-
-    onChanged?.call(newColor);
+    return _isBlackMode
+        ? _notify(_a, angle, 1.0, factor)
+        : _notify(_a, angle, factor, 1.0);
   }
 
-  Widget _buildIndicator(HSVColor hsv) {
+  Widget _buildIndicator() {
     return Container(
       width: 24,
       height: 24,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: (isBlackMode && hsv.value < 0.5) ? Colors.white : Colors.black,
+          color: (_isBlackMode && _v < 0.5) ? Colors.white : Colors.black,
           width: 3,
         ),
-        color: color,
+        color: _color,
         boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black26)],
       ),
     );
   }
+
+  void _notify(double a, double h, double s, double v) {
+    setState(() {
+      _a = a;
+      _h = h;
+      _s = s;
+      _v = v;
+    });
+    _color = HSVColor.fromAHSV(a, h, s, v).toColor();
+    widget.onChanged?.call(_color);
+  }
+
+  void _syncInternalHSV(Color color) {
+    final hsv = HSVColor.fromColor(color);
+    _a = color.a;
+    if (hsv.saturation > 0.01 || hsv.value > 0.01) {
+      _h = hsv.hue;
+    }
+    _s = hsv.saturation;
+    _v = hsv.value;
+  }
+}
+
+///
+/// Toggle for wheel between black and white gradient
+///
+class ColorusWheelToggle extends StatelessWidget {
+  final bool isBlackMode;
+  final VoidCallback onToggle;
+
+  const ColorusWheelToggle({
+    super.key,
+    required this.isBlackMode,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    onPressed: onToggle,
+    icon: AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isBlackMode ? Colors.black : Colors.white,
+        border: Border.all(color: Colors.grey),
+      ),
+      child: Icon(
+        isBlackMode ? Icons.nightlight_round : Icons.wb_sunny,
+        color: isBlackMode ? Colors.white : Colors.orange,
+        size: 20,
+      ),
+    ),
+  );
 }
 
 ///
 /// Paints wheel with all colors
 ///
-class ColorusWheelPainter extends CustomPainter {
+class _ColorusWheelPainter extends CustomPainter {
   final bool isBlackMode;
 
-  ColorusWheelPainter({required this.isBlackMode});
+  _ColorusWheelPainter({required this.isBlackMode});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -146,114 +337,6 @@ class ColorusWheelPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ColorusWheelPainter oldDelegate) =>
+  bool shouldRepaint(_ColorusWheelPainter oldDelegate) =>
       oldDelegate.isBlackMode != isBlackMode;
-}
-
-///
-/// Toggle for wheel between black and white mode
-///
-class ColorusWheelToggle extends StatelessWidget {
-  final bool isBlackMode;
-  final VoidCallback onToggle;
-
-  const ColorusWheelToggle({
-    super.key,
-    required this.isBlackMode,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onToggle,
-      icon: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: isBlackMode ? Colors.black : Colors.white,
-          border: Border.all(color: Colors.grey),
-        ),
-        child: Icon(
-          isBlackMode ? Icons.nightlight_round : Icons.wb_sunny,
-          color: isBlackMode ? Colors.white : Colors.orange,
-          size: 20,
-        ),
-      ),
-    );
-  }
-}
-
-///
-///
-///
-class ColorusWheelWithToggle extends StatefulWidget {
-  final Color color;
-  final ValueChanged<Color> onChanged;
-
-  const ColorusWheelWithToggle({
-    super.key,
-    required this.color,
-    required this.onChanged,
-  });
-
-  @override
-  State<ColorusWheelWithToggle> createState() => _ColorusWheelWithToggleState();
-}
-
-class _ColorusWheelWithToggleState extends State<ColorusWheelWithToggle> {
-  bool _isBlackMode = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Match the sizing logic of the Wheel itself
-        double size = min(constraints.maxHeight, constraints.maxWidth);
-        if (size == double.infinity) size = 200;
-
-        return Center(
-          child: SizedBox(
-            width: size,
-            height: size,
-            child: Stack(
-              children: [
-                ColorusWheel(
-                  color: widget.color,
-                  isBlackMode: _isBlackMode,
-                  onChanged: widget.onChanged,
-                ),
-                // Toggle sits exactly at the top-right of the square
-                Positioned(right: 0, top: 0, child: _buildModeToggle()),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildModeToggle() {
-    return GestureDetector(
-      onTap: () => setState(() => _isBlackMode = !_isBlackMode),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: _isBlackMode ? Colors.grey[900] : Colors.white,
-          boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)],
-          border: Border.all(
-            color: _isBlackMode ? Colors.white24 : Colors.black12,
-          ),
-        ),
-        child: Icon(
-          _isBlackMode ? Icons.nightlight_round : Icons.wb_sunny,
-          size: 18,
-          color: _isBlackMode ? Colors.blueAccent : Colors.orange,
-        ),
-      ),
-    );
-  }
 }

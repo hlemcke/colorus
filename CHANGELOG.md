@@ -1,3 +1,11 @@
+## 1.2.0
+
+* fixed bug: `ColorusWheel` with `alphaPosition` now uses implicit max width
+  and height if not constrained
+* added property `alphaPosition` to `ColorusWheel`
+* added property `showValue` to `ColorusWheel`
+* removed `ColorusWheelWithToggle`. Use `ColorusWheel( togglePosition:)` instead
+
 ## 1.1.1
 
 * fixed bug in `ColorusRing` when initial color is black
