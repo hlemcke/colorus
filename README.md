@@ -13,7 +13,7 @@ Add the latest version of Colorus to the pubspc.yaml file:
 
 ```yaml
 flutter:
-  colorus: ^1.1.0
+  colorus: ^1.2.0+1
 ```
 
 # Usage

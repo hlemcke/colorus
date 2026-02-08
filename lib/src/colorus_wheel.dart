@@ -68,17 +68,17 @@ class _ColorusWheelState extends State<ColorusWheel> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
-        ColorusCircle circle = ColorusCircle(
+        ColorusLayout layout = ColorusLayout(
           constraints: constraints,
           sliderPosition: widget.alphaPosition,
           togglePosition: widget.togglePosition,
         );
 
-        Widget wheel = _buildWheel(circle);
-        Widget slider = _buildSlider(circle);
-        Widget toggle = _buildToggle(circle);
+        Widget wheel = _buildWheel(layout);
+        Widget slider = _buildSlider(layout);
+        Widget toggle = _buildToggle(layout);
 
-        return _applyLayout(circle, wheel, slider, toggle);
+        return _applyLayout(layout, wheel, slider, toggle);
       },
     );
   }
@@ -92,79 +92,83 @@ class _ColorusWheelState extends State<ColorusWheel> {
     }
   }
 
+  /// Layout widgets
   Widget _applyLayout(
-    ColorusCircle circle,
+    ColorusLayout layout,
     Widget wheel,
     Widget slider,
     Widget toggle,
   ) {
-    double dt = circle.sliderThickness; // Delta for slider
+    double dt = layout.sliderThickness; // Delta for slider
     ColorusSliderPosition ap = widget.alphaPosition;
-    return Stack(
-      children: [
-        //--- The optional alpha-slider
-        switch (widget.alphaPosition) {
-          .none => SizedBox.shrink(),
-          .top => Positioned(top: 0, left: 0, right: dt, child: slider),
-          .right => Positioned(right: 0, top: 0, bottom: dt, child: slider),
-          .bottom => Positioned(bottom: 0, left: 0, right: dt, child: slider),
-          .left => Positioned(left: 0, top: 0, bottom: dt, child: slider),
-        },
-        //--- The wheel itself
-        switch (widget.alphaPosition) {
-          .none => wheel,
-          .top => Positioned(bottom: 0, child: wheel),
-          .right => Positioned(left: 0, child: wheel),
-          .bottom => Positioned(top: 0, child: wheel),
-          .left => Positioned(right: 0, child: wheel),
-        },
-        //--- The optional toggle action
-        switch (widget.togglePosition) {
-          .none => SizedBox.shrink(),
-          .topRight => Positioned(
-            top: ap == .top ? dt : 0,
-            right: ap == .top || ap == .right || ap == .bottom ? dt : 0,
-            child: toggle,
-          ),
-          .bottomRight => Positioned(
-            bottom: ap == .bottom || ap == .left || ap == .right ? dt : 0,
-            right: ap == .top || ap == .bottom || ap == .right ? dt : 0,
-            child: toggle,
-          ),
-          .bottomLeft => Positioned(
-            bottom: ap == .bottom || ap == .left || ap == .right ? dt : 0,
-            left: ap == .left ? dt : 0,
-            child: toggle,
-          ),
-          .topLeft => Positioned(
-            left: ap == .left ? dt : 0,
-            top: ap == .top ? dt : 0,
-            child: toggle,
-          ),
-        },
-      ],
+    return SizedBox.square(
+      dimension: layout.boxLength,
+      child: Stack(
+        children: [
+          //--- The optional alpha-slider
+          switch (widget.alphaPosition) {
+            .none => SizedBox.shrink(),
+            .top => Positioned(top: 0, left: 0, right: dt, child: slider),
+            .right => Positioned(right: 0, top: 0, bottom: dt, child: slider),
+            .bottom => Positioned(bottom: 0, left: 0, right: dt, child: slider),
+            .left => Positioned(left: 0, top: 0, bottom: dt, child: slider),
+          },
+          //--- The wheel itself
+          switch (widget.alphaPosition) {
+            .none => wheel,
+            .top => Positioned(bottom: 0, child: wheel),
+            .right => Positioned(left: 0, child: wheel),
+            .bottom => Positioned(top: 0, child: wheel),
+            .left => Positioned(right: 0, child: wheel),
+          },
+          //--- The optional toggle action
+          switch (widget.togglePosition) {
+            .none => SizedBox.shrink(),
+            .topRight => Positioned(
+              top: ap == .top ? dt : 0,
+              right: ap == .top || ap == .right || ap == .bottom ? dt : 0,
+              child: toggle,
+            ),
+            .bottomRight => Positioned(
+              bottom: ap == .bottom || ap == .left || ap == .right ? dt : 0,
+              right: ap == .top || ap == .bottom || ap == .right ? dt : 0,
+              child: toggle,
+            ),
+            .bottomLeft => Positioned(
+              bottom: ap == .bottom || ap == .left || ap == .right ? dt : 0,
+              left: ap == .left ? dt : 0,
+              child: toggle,
+            ),
+            .topLeft => Positioned(
+              left: ap == .left ? dt : 0,
+              top: ap == .top ? dt : 0,
+              child: toggle,
+            ),
+          },
+        ],
+      ),
     );
   }
 
   /// Builds the alpha-slider
-  Widget _buildSlider(ColorusCircle circle) {
-    if (!circle.hasSlider) return const SizedBox.shrink();
+  Widget _buildSlider(ColorusLayout layout) {
+    if (!layout.hasSlider) return const SizedBox.shrink();
 
     return SizedBox(
-      width: circle.isVertical ? circle.sliderThickness : circle.sliderLength,
-      height: circle.isVertical ? circle.sliderLength : circle.sliderThickness,
+      width: layout.isVertical ? layout.sliderThickness : layout.sliderLength,
+      height: layout.isVertical ? layout.sliderLength : layout.sliderThickness,
       child: ColorusSlider(
-        value: _a,
         baseColor: _color,
         onChanged: (alpha) => _notify(alpha, _h, _s, _v),
-        orientation: circle.isVertical ? .portrait : .landscape,
+        orientation: layout.isVertical ? .portrait : .landscape,
         showValue: widget.showValue,
+        value: _a,
         withCheckerBoard: true,
       ),
     );
   }
 
-  Widget _buildToggle(ColorusCircle circle) => (widget.togglePosition == .none)
+  Widget _buildToggle(ColorusLayout layout) => (widget.togglePosition == .none)
       ? const SizedBox.shrink()
       : ColorusWheelToggle(
           isBlackMode: _isBlackMode,
@@ -172,7 +176,7 @@ class _ColorusWheelState extends State<ColorusWheel> {
         );
 
   /// Builds the wheel
-  Widget _buildWheel(ColorusCircle circle) {
+  Widget _buildWheel(ColorusLayout circle) {
     final double radius = circle.diameter / 2;
     final double angle = _h * pi / 180;
     final double distance = (_isBlackMode ? _v : _s) * radius;

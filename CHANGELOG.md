@@ -1,10 +1,13 @@
+## 1.2.0+1
+
+* fixed bug in `ColorusRing` if unbounded constraints where provided
+* fixed bug in `ColorusWheel` if unbounded constraints where provided
+
 ## 1.2.0
 
-* fixed bug: `ColorusWheel` with `alphaPosition` now uses implicit max width
-  and height if not constrained
 * added property `alphaPosition` to `ColorusWheel`
 * added property `showValue` to `ColorusWheel`
-* removed `ColorusWheelWithToggle`. Use `ColorusWheel( togglePosition:)` instead
+* removed `ColorusWheelWithToggle`. Use `ColorusWheel( togglePosition: .topLeft)` instead
 
 ## 1.1.1
 

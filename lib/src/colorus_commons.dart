@@ -6,14 +6,22 @@ import 'package:flutter/material.dart';
 ///
 /// Helper class to compute values for `ColorusRing` and `ColorusWheel`
 ///
-class ColorusCircle {
+class ColorusLayout {
   final double spacing = 12;
   final double sliderThickness = 50;
   final double toggleSize = 24;
-  late final double boxLength, diameter, sliderLength;
+
+  /// Size of outer layout area for wheel plus optional slider
+  late final double boxLength;
+
+  /// diameter of the wheel
+  late final double diameter;
+
+  /// length of optional alpha-slider
+  late final double sliderLength;
   late final bool hasSlider, hasToggle, isVertical;
 
-  ColorusCircle({
+  ColorusLayout({
     required BoxConstraints constraints,
     ColorusSliderPosition sliderPosition = .none,
     ColorusTogglePosition togglePosition = .none,
@@ -30,19 +38,8 @@ class ColorusCircle {
     }
 
     diameter = min(availH, availW).clamp(100.0, double.infinity);
-
-    bool hasConflict = false;
-    if (hasSlider && hasToggle) {
-      hasConflict = switch (sliderPosition) {
-        .top => togglePosition == .topLeft || togglePosition == .topRight,
-        .right => togglePosition == .topRight || togglePosition == .bottomRight,
-        .bottom =>
-          togglePosition == .bottomRight || togglePosition == .bottomLeft,
-        .left => togglePosition == .bottomLeft || togglePosition == .topLeft,
-        _ => false,
-      };
-    }
-    sliderLength = diameter - (hasConflict ? toggleSize : 0);
+    sliderLength = diameter;
+    boxLength = diameter + (hasSlider ? sliderThickness : 0);
   }
 
   Widget get hGap => SizedBox(width: spacing);

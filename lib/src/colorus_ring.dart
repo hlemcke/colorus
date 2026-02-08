@@ -63,7 +63,7 @@ class _ColorusRingState extends State<ColorusRing> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
-      ColorusCircle circle = ColorusCircle(
+      ColorusLayout circle = ColorusLayout(
         constraints: constraints,
         sliderPosition: widget.alphaPosition,
       );
@@ -74,7 +74,7 @@ class _ColorusRingState extends State<ColorusRing> {
     },
   );
 
-  Widget _buildRing(ColorusCircle circle) {
+  Widget _buildRing(ColorusLayout circle) {
     double len = circle.diameter;
     return SizedBox(
       width: len,
@@ -96,41 +96,49 @@ class _ColorusRingState extends State<ColorusRing> {
     );
   }
 
-  Widget _buildSlider(ColorusCircle circle) {
+  Widget _buildSlider(ColorusLayout layout) {
     if (widget.alphaPosition == .none) return SizedBox.shrink();
 
-    return ColorusSlider(
-      baseColor: HSVColor.fromAHSV(_a, _h, _s, _v).toColor(),
-      onChanged: (a) => _notify(a, _h, _s, _v),
-      orientation: circle.isVertical
-          ? Orientation.portrait
-          : Orientation.landscape,
-      showValue: widget.showValue,
-      value: _a,
-      withCheckerBoard: true,
+    return SizedBox(
+      width: layout.isVertical ? layout.sliderThickness : layout.sliderLength,
+      height: layout.isVertical ? layout.sliderLength : layout.sliderThickness,
+      child: ColorusSlider(
+        baseColor: HSVColor.fromAHSV(_a, _h, _s, _v).toColor(),
+        onChanged: (a) => _notify(a, _h, _s, _v),
+        orientation: layout.isVertical ? .portrait : .landscape,
+        showValue: widget.showValue,
+        value: _a,
+        withCheckerBoard: true,
+      ),
     );
   }
 
-  Widget _applyLayout(ColorusCircle circle, Widget ring, Widget alpha) =>
-      switch (widget.alphaPosition) {
-        .none => ring,
-        .top => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [alpha, circle.vGap, ring],
-        ),
-        .right => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [ring, circle.hGap, alpha],
-        ),
-        .bottom => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [ring, circle.vGap, alpha],
-        ),
-        .left => Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [alpha, circle.hGap, ring],
-        ),
-      };
+  Widget _applyLayout(ColorusLayout layout, Widget ring, Widget slider) {
+    double dt = layout.sliderThickness; // Delta for slider
+    return SizedBox.square(
+      dimension: layout.boxLength,
+      child: Stack(
+        children: [
+          //--- The optional alpha-slider
+          switch (widget.alphaPosition) {
+            .none => SizedBox.shrink(),
+            .top => Positioned(top: 0, left: 0, right: dt, child: slider),
+            .right => Positioned(right: 0, top: 0, bottom: dt, child: slider),
+            .bottom => Positioned(bottom: 0, left: 0, right: dt, child: slider),
+            .left => Positioned(left: 0, top: 0, bottom: dt, child: slider),
+          },
+          //--- The ring itself
+          switch (widget.alphaPosition) {
+            .none => ring,
+            .top => Positioned(bottom: 0, child: ring),
+            .right => Positioned(left: 0, child: ring),
+            .bottom => Positioned(top: 0, child: ring),
+            .left => Positioned(right: 0, child: ring),
+          },
+        ],
+      ),
+    );
+  }
 
   // --- Sub-Builders ---
 

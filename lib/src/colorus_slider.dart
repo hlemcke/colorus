@@ -49,15 +49,18 @@ class ColorusSlider extends StatelessWidget {
       clipBehavior: .none,
       children: [
         //--- Slim visual track (background)
-        ClipRRect(
-          borderRadius: BorderRadius.circular(trackBarHeight / 2),
-          child: CustomPaint(
-            size: const Size(double.infinity, trackBarHeight),
-            painter: ColorusTrackPainter(
-              color: baseColor,
-              isHue: isHue,
-              value: _value,
-              withCheckerBoard: withCheckerBoard,
+        SizedBox(
+          height: trackBarHeight,
+          width: double.infinity,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(trackBarHeight / 2),
+            child: CustomPaint(
+              painter: ColorusTrackPainter(
+                color: baseColor,
+                isHue: isHue,
+                value: _value,
+                withCheckerBoard: withCheckerBoard,
+              ),
             ),
           ),
         ),
