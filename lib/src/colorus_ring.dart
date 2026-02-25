@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../colorus.dart';
-import 'colorus_commons.dart';
 
 ///
 ///

@@ -1,7 +1,9 @@
 library;
 
+export 'src/colorus_commons.dart';
 export 'src/colorus_grid.dart';
 export 'src/colorus_hue_slider.dart';
+export 'src/colorus_oklab.dart';
 export 'src/colorus_rgb_slider.dart';
 export 'src/colorus_ring.dart';
 export 'src/colorus_slider.dart';

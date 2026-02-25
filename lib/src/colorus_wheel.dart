@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:colorus/src/colorus_commons.dart';
 import 'package:flutter/material.dart';
 
 import '../colorus.dart';

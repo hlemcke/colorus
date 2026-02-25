@@ -6,6 +6,7 @@ Flutter Color Choosers with small footprint
 
 * Runs on all platforms
 * Provides small and easy to use color pickers
+* Provides multiple helper methods and `OKLabColor`
 
 # Getting started
 
@@ -13,7 +14,7 @@ Add the latest version of Colorus to the pubspc.yaml file:
 
 ```yaml
 flutter:
-  colorus: ^1.2.0+1
+  colorus: ^1.2.1
 ```
 
 # Usage

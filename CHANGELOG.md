@@ -1,3 +1,8 @@
+## 1.2.1
+
+* added OKLabColor. see https://en.wikipedia.org/wiki/Oklab_color_space
+* added multiple methods in `ColorusHelper`
+
 ## 1.2.0+1
 
 * fixed bug in `ColorusRing` if unbounded constraints where provided
