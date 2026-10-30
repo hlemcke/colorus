@@ -1,3 +1,8 @@
+## 1.3.0
+
+* migrated from `package:flutter/material.dart` to `package:material_ui/material_ui.dart`.
+  Apps must use `material_ui` too, otherwise `Slider` / `IconButton` report "No Material widget found"
+
 ## 1.2.1
 
 * added OKLabColor. see https://en.wikipedia.org/wiki/Oklab_color_space

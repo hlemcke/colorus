@@ -1,5 +1,5 @@
 import 'package:colorus/colorus.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Entry point of example application
 void main() {
